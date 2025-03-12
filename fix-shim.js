@@ -1,11 +1,11 @@
-import fs, { chmod } from "node:fs/promises";
-import path from "node:path";
-import { SHIMS_DIR, VERSIONS_DIR } from "../versions/version-manager";
+// This is a manual rehash script
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
 
-/**
- * Template for the shim executable
- * This will be written to each shim file
- */
+const BUNENV_ROOT = path.join(os.homedir(), ".bunenv");
+const SHIMS_DIR = path.join(BUNENV_ROOT, "shims");
+
 const SHIM_TEMPLATE = `#!/usr/bin/env bash
 set -e
 
@@ -122,109 +122,9 @@ else
 fi
 `;
 
-/**
- * Creates a shim executable in the shims directory
- *
- * @param shimName - Name of the shim to create
- * @returns Promise that resolves when the shim is created
- */
-async function createShim(shimName: string): Promise<void> {
-  const shimPath = path.join(SHIMS_DIR, shimName);
+// Create the shim file for bun
+const shimPath = path.join(SHIMS_DIR, "bun");
+fs.writeFileSync(shimPath, SHIM_TEMPLATE);
+fs.chmodSync(shimPath, 0o755);
 
-  try {
-    // Write the shim executable
-    await fs.writeFile(shimPath, SHIM_TEMPLATE);
-
-    // Make the shim executable
-    await chmod(shimPath, 0o755);
-  } catch (error) {
-    throw new Error(
-      `Failed to create shim for ${shimName}: ${(error as Error).message}`
-    );
-  }
-}
-
-/**
- * Gets a list of all executables in all installed Bun versions
- *
- * @returns Array of executable names
- */
-async function getAllExecutables(): Promise<string[]> {
-  try {
-    // Get all installed versions
-    const versions = await fs.readdir(VERSIONS_DIR);
-    const allExecutables = new Set<string>();
-
-    // Always include the 'bun' executable
-    allExecutables.add("bun");
-
-    // For each installed version, check for executables
-    await Promise.all(
-      versions.map(async (version) => {
-        const binDir = path.join(VERSIONS_DIR, version, "bin");
-        try {
-          const files = await fs.readdir(binDir);
-
-          // Add each file to the set of executables
-          for (const file of files) {
-            const filePath = path.join(binDir, file);
-            const stats = await fs.stat(filePath);
-
-            // Only add if it's an executable
-            if (stats.isFile() && stats.mode & 0o111) {
-              allExecutables.add(file);
-            }
-          }
-        } catch (error) {
-          // Ignore errors if the bin directory doesn't exist
-        }
-      })
-    );
-
-    return Array.from(allExecutables);
-  } catch (error) {
-    // If VERSIONS_DIR doesn't exist, just return bun
-    return ["bun"];
-  }
-}
-
-/**
- * Recreates all shims for installed Bun versions
- *
- * @returns Promise that resolves when all shims are created
- */
-export async function rehashShims(): Promise<void> {
-  try {
-    // Create the shims directory if it doesn't exist
-    await fs.mkdir(SHIMS_DIR, { recursive: true });
-
-    // Get all executables from all installed Bun versions
-    const executables = await getAllExecutables();
-
-    // Create a shim for each executable
-    await Promise.all(executables.map(createShim));
-
-    // Also create a shim for bunenv itself to ensure PATH works correctly
-    // This bunenv shim will delegate to the actual bunenv binary
-    if (!executables.includes("bunenv")) {
-      await createShim("bunenv");
-    }
-
-    console.log(`Successfully rehashed ${executables.length + 1} shims.`);
-  } catch (error) {
-    throw new Error(`Failed to rehash shims: ${(error as Error).message}`);
-  }
-}
-
-/**
- * Sets up a shell environment with the correct PATH
- *
- * @param version - Bun version to use in the shell
- * @returns Environment variables to be set in the shell
- */
-export function getShellEnv(version: string): Record<string, string> {
-  return {
-    BUNENV_VERSION: version,
-    PATH: `${SHIMS_DIR}:${process.env.PATH || ""}`,
-  };
-}
+console.log("Successfully rebuilt the bun shim");

@@ -1,6 +1,8 @@
 import fs from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
+import semver from "semver";
+import { listInstalledVersions } from "../versions/version-manager";
 
 /**
  * Constants for file names and environment variables
@@ -107,6 +109,39 @@ export async function readVersionFile(
 }
 
 /**
+ * If the provided version is a semver range (like >=1.0.0), resolve it to an actual installed version
+ *
+ * @param versionRange - Version or version range
+ * @returns Specific version that satisfies the range, or the original version string if it's not a range
+ */
+export async function resolveVersionRange(
+  versionRange: string
+): Promise<string> {
+  // If it's an exact version, return it
+  if (semver.valid(versionRange)) {
+    return versionRange;
+  }
+
+  // Get all installed versions
+  const installedVersions = await listInstalledVersions();
+
+  if (installedVersions.length === 0) {
+    // No versions installed, return the original range
+    return versionRange;
+  }
+
+  // Try to find the best matching version for the range
+  const matchingVersion = semver.maxSatisfying(installedVersions, versionRange);
+
+  if (matchingVersion) {
+    return matchingVersion;
+  }
+
+  // If no matching version found, return the original range
+  return versionRange;
+}
+
+/**
  * Determines which Bun version to use based on environment variables and version files
  *
  * Resolution order:
@@ -121,7 +156,7 @@ export async function resolveVersion(): Promise<string | null> {
   // 1. Check environment variable
   const envVersion = process.env[ENV_VAR_NAME];
   if (envVersion) {
-    return envVersion;
+    return await resolveVersionRange(envVersion);
   }
 
   // 2. Check for local .bun-version file
@@ -129,21 +164,25 @@ export async function resolveVersion(): Promise<string | null> {
   if (versionFilePath) {
     const version = await readVersionFile(versionFilePath);
     if (version) {
-      return version;
+      return await resolveVersionRange(version);
     }
   }
 
   // 3. Check package.json
   const packageJsonVersion = await findVersionFromPackageJson();
   if (packageJsonVersion) {
-    return packageJsonVersion;
+    return await resolveVersionRange(packageJsonVersion);
   }
 
   // 4. Check global version file
   try {
     const globalVersion = await readVersionFile(GLOBAL_VERSION_FILE);
-    return globalVersion;
+    if (globalVersion) {
+      return await resolveVersionRange(globalVersion);
+    }
   } catch (error) {
-    return null;
+    // Ignore errors reading global version file
   }
+
+  return null;
 }
