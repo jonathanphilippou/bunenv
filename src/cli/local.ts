@@ -1,9 +1,13 @@
 import { Command } from "commander";
-import { VERSION_FILE_NAME } from "../resolvers/version-resolver";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { getLocalVersionFileName } from "../core/paths";
 import {
   isVersionInstalled,
   setLocalVersion,
 } from "../versions/version-manager";
+import { errorAndExit, info, logError, success } from "./utils/output";
+import { isValidVersionFormat, normalizeVersion } from "./utils/validation";
 
 /**
  * Configures the local command for the CLI
@@ -14,41 +18,54 @@ export function localCommand(program: Command): void {
   program
     .command("local")
     .description(
-      `Set or show the local Bun version (creates ${VERSION_FILE_NAME})`
+      `Set or show the local Bun version (creates ${getLocalVersionFileName()})`
     )
     .argument("[version]", "Version to set as local (e.g., 1.0.0)")
     .action(async (version?: string) => {
       try {
         if (!version) {
           // Show current local version
-          const fs = await import("node:fs/promises");
-          const path = await import("node:path");
-
-          const localVersionFile = path.join(process.cwd(), VERSION_FILE_NAME);
+          const localVersionFile = path.join(
+            process.cwd(),
+            getLocalVersionFileName()
+          );
 
           try {
             const localVersion = await fs.readFile(localVersionFile, "utf-8");
-            console.log(`Current local Bun version: ${localVersion.trim()}`);
+            info(`Current local Bun version: ${localVersion.trim()}`);
           } catch (error) {
-            console.log(
-              `No local Bun version set. No ${VERSION_FILE_NAME} file found.`
+            info(
+              `No local Bun version set. No ${getLocalVersionFileName()} file found.`
             );
           }
 
           return;
         }
 
-        // Check if the version is installed
-        if (!(await isVersionInstalled(version))) {
-          console.error(
-            `Bun ${version} is not installed. Use 'bunenv install ${version}' to install it.`
+        // Validate version format
+        if (!isValidVersionFormat(version)) {
+          errorAndExit(
+            `Invalid version format: ${version}. Expected format: x.y.z`
           );
-          process.exit(1);
         }
 
-        await setLocalVersion(version);
+        // Normalize version (remove v prefix if present)
+        const normalizedVersion = normalizeVersion(version);
+
+        // Check if the version is installed
+        if (!(await isVersionInstalled(normalizedVersion))) {
+          errorAndExit(
+            `Bun ${normalizedVersion} is not installed.`,
+            undefined,
+            1,
+            [`Use 'bunenv install ${normalizedVersion}' to install it.`]
+          );
+        }
+
+        await setLocalVersion(normalizedVersion);
+        success(`Local Bun version set to ${normalizedVersion}`);
       } catch (error) {
-        console.error((error as Error).message);
+        logError("Failed to set local Bun version", error as Error);
         process.exit(1);
       }
     });

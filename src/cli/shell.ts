@@ -2,6 +2,8 @@ import { Command } from "commander";
 import { spawn } from "node:child_process";
 import { getShellEnv } from "../shims/shim-manager";
 import { isVersionInstalled } from "../versions/version-manager";
+import { errorAndExit, info, logError } from "./utils/output";
+import { isValidVersionFormat, normalizeVersion } from "./utils/validation";
 
 /**
  * Configures the shell command for the CLI
@@ -15,12 +17,24 @@ export function shellCommand(program: Command): void {
     .argument("<version>", "Bun version to use in this shell")
     .action(async (version: string) => {
       try {
-        // Check if the version is installed
-        if (!(await isVersionInstalled(version))) {
-          console.error(
-            `Bun ${version} is not installed. Use 'bunenv install ${version}' to install it.`
+        // Validate version format
+        if (!isValidVersionFormat(version)) {
+          errorAndExit(
+            `Invalid version format: ${version}. Expected format: x.y.z`
           );
-          process.exit(1);
+        }
+
+        // Normalize version (remove v prefix if present)
+        const normalizedVersion = normalizeVersion(version);
+
+        // Check if the version is installed
+        if (!(await isVersionInstalled(normalizedVersion))) {
+          errorAndExit(
+            `Bun ${normalizedVersion} is not installed.`,
+            undefined,
+            1,
+            [`Use 'bunenv install ${normalizedVersion}' to install it.`]
+          );
         }
 
         // Get the current shell
@@ -29,10 +43,10 @@ export function shellCommand(program: Command): void {
         // Create environment variables for the new shell
         const env = {
           ...process.env,
-          ...getShellEnv(version),
+          ...getShellEnv(normalizedVersion),
         };
 
-        console.log(`Switching to Bun ${version}`);
+        info(`Switching to Bun ${normalizedVersion}`);
 
         // Spawn a new shell with the modified environment
         const shellProcess = spawn(shell, [], {
@@ -42,11 +56,14 @@ export function shellCommand(program: Command): void {
 
         // Handle shell exit
         shellProcess.on("close", (code) => {
-          console.log(`Shell exited with code ${code}`);
+          info(`Shell exited with code ${code}`);
           process.exit(code || 0);
         });
       } catch (error) {
-        console.error((error as Error).message);
+        logError(
+          "Failed to start shell with specified Bun version",
+          error as Error
+        );
         process.exit(1);
       }
     });

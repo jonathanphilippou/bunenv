@@ -1,8 +1,12 @@
 import { Command } from "commander";
+import fs from "node:fs/promises";
+import { getGlobalVersionFile } from "../core/paths";
 import {
   isVersionInstalled,
   setGlobalVersion,
 } from "../versions/version-manager";
+import { errorAndExit, info, logError, success } from "./utils/output";
+import { isValidVersionFormat, normalizeVersion } from "./utils/validation";
 
 /**
  * Configures the global command for the CLI
@@ -18,33 +22,42 @@ export function globalCommand(program: Command): void {
       try {
         if (!version) {
           // Show current global version
-          const fs = await import("node:fs/promises");
-          const path = await import("node:path");
-          const homedir = await import("node:os").then((os) => os.homedir);
-
-          const globalVersionFile = path.join(homedir(), ".bunenv", "version");
+          const globalVersionFile = getGlobalVersionFile();
 
           try {
             const globalVersion = await fs.readFile(globalVersionFile, "utf-8");
-            console.log(`Current global Bun version: ${globalVersion.trim()}`);
+            info(`Current global Bun version: ${globalVersion.trim()}`);
           } catch (error) {
-            console.log("No global Bun version set.");
+            info("No global Bun version set.");
           }
 
           return;
         }
 
-        // Check if the version is installed
-        if (!(await isVersionInstalled(version))) {
-          console.error(
-            `Bun ${version} is not installed. Use 'bunenv install ${version}' to install it.`
+        // Validate version format
+        if (!isValidVersionFormat(version)) {
+          errorAndExit(
+            `Invalid version format: ${version}. Expected format: x.y.z`
           );
-          process.exit(1);
         }
 
-        await setGlobalVersion(version);
+        // Normalize version (remove v prefix if present)
+        const normalizedVersion = normalizeVersion(version);
+
+        // Check if the version is installed
+        if (!(await isVersionInstalled(normalizedVersion))) {
+          errorAndExit(
+            `Bun ${normalizedVersion} is not installed.`,
+            undefined,
+            1,
+            [`Use 'bunenv install ${normalizedVersion}' to install it.`]
+          );
+        }
+
+        await setGlobalVersion(normalizedVersion);
+        success(`Global Bun version set to ${normalizedVersion}`);
       } catch (error) {
-        console.error((error as Error).message);
+        logError("Failed to set global Bun version", error as Error);
         process.exit(1);
       }
     });

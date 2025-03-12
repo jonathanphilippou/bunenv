@@ -179,21 +179,32 @@ async function fileExists(filePath: string): Promise<boolean> {
 /**
  * Install a specific Bun version
  * @param version Version to install
+ * @param force Force reinstall even if already installed
  */
-export async function installVersion(version: string): Promise<void> {
+export async function installVersion(
+  version: string,
+  force: boolean = false
+): Promise<void> {
   // Normalize the version (remove leading v if present)
   const normalizedVersion = version.startsWith("v")
     ? version.slice(1)
     : version;
 
-  // Check if already installed
-  if (await isVersionInstalled(normalizedVersion)) {
+  // Check if already installed (unless force is true)
+  if (!force && (await isVersionInstalled(normalizedVersion))) {
     console.log(`Bun ${normalizedVersion} is already installed.`);
     return;
   }
 
-  // Create the version directory
+  // Create the version directory (removing it first if it exists and force is true)
   const versionDir = path.join(getVersionsDir(), normalizedVersion);
+
+  if (force && (await fsUtils.exists(versionDir))) {
+    console.log(
+      `Removing existing installation of Bun ${normalizedVersion}...`
+    );
+    await fsUtils.deleteDirectory(versionDir);
+  }
 
   try {
     // Download and install
