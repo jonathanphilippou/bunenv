@@ -1,0 +1,57 @@
+{
+  "name": "bunenv",
+  "version": "0.1.0",
+  "description": "A version manager for Bun, inspired by rbenv and pyenv",
+  "module": "src/index.ts",
+  "type": "module",
+  "bin": {
+    "bunenv": "./bin/bunenv"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target node",
+    "start": "bun run src/index.ts",
+    "test": "bun test",
+    "format": "prettier --write 'src/**/*.ts'",
+    "lint": "eslint src/ --ext .ts",
+    "prepublishOnly": "bun run build"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/semver": "^7.5.8",
+    "@typescript-eslint/eslint-plugin": "latest",
+    "@typescript-eslint/parser": "latest",
+    "eslint": "latest",
+    "prettier": "latest"
+  },
+  "dependencies": {
+    "commander": "latest",
+    "semver": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/bunenv.git"
+  },
+  "keywords": [
+    "bun",
+    "version",
+    "manager",
+    "env",
+    "bunenv",
+    "versions"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}

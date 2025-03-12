@@ -1,0 +1,10 @@
+#!/usr/bin/env bun
+
+// When installed globally, we need to use the dist directory
+try {
+  // First try to load from dist (for global installation)
+  await import('../dist/index.js');
+} catch (error) {
+  // Fallback to src (for local development)
+  await import('../src/index.js');
+} 
