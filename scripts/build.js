@@ -12,11 +12,9 @@ import fs from "node:fs/promises";
 const configs = {
   development: {
     minify: false,
-    sourcemap: "external",
   },
   production: {
     minify: true,
-    sourcemap: "none",
   },
 };
 
@@ -67,12 +65,6 @@ const buildArgs = [
 // Add minify flag if needed
 if (config.minify) {
   buildArgs.push("--minify");
-}
-
-// Add sourcemap option if not "none"
-if (config.sourcemap !== "none") {
-  buildArgs.push("--sourcemap");
-  buildArgs.push(config.sourcemap);
 }
 
 const buildResult = spawnSync("bun", buildArgs, { stdio: "inherit" });

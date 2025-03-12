@@ -142,28 +142,181 @@ async function downloadBunBinary(
     // Extract the zip file
     console.log(`Extracting Bun ${version}...`);
 
-    // Use different extraction methods depending on the OS
+    // First, extract to the temp directory
+    const extractTempDir = path.join(tempDir, "extract");
+    await fsUtils.ensureDirectory(extractTempDir);
+
     if (getOperatingSystem() === "windows") {
       // Use PowerShell to extract on Windows
       await execCommand("powershell", [
         "-Command",
-        `Expand-Archive -Path "${zipPath}" -DestinationPath "${destDir}" -Force`,
+        `Expand-Archive -Path "${zipPath}" -DestinationPath "${extractTempDir}" -Force`,
       ]);
     } else {
       // Use unzip on Unix-like systems
-      await execCommand("unzip", ["-q", "-o", zipPath, "-d", destDir]);
+      await execCommand("unzip", ["-q", "-o", zipPath, "-d", extractTempDir]);
     }
 
-    // Make the binary executable on Unix-like systems
-    if (getOperatingSystem() !== "windows") {
-      const bunBin = getBunBinaryPath(version);
-      await fs.chmod(bunBin, 0o755);
+    // Find the binary in the extracted directory
+    const files = await fs.readdir(extractTempDir);
+
+    // The extracted files might be in a platform-specific directory
+    let platformDir = files.find((file) => file.startsWith("bun-"));
+    let bunExecutablePath = null;
+
+    if (platformDir) {
+      // Check if there's a direct binary in the platform directory
+      bunExecutablePath = path.join(extractTempDir, platformDir, "bun");
+    }
+
+    // If we found the executable, create the bin directory and copy it there
+    if (bunExecutablePath && (await fsUtils.exists(bunExecutablePath))) {
+      // Create the bin directory
+      const binDir = path.join(destDir, "bin");
+      await fsUtils.ensureDirectory(binDir);
+
+      // Copy the Bun executable to the bin directory
+      const targetBunPath = path.join(binDir, "bun");
+      await fs.copyFile(bunExecutablePath, targetBunPath);
+
+      // Make the binary executable
+      await fs.chmod(targetBunPath, 0o755);
+
+      // Also copy the platform directory for completeness
+      if (platformDir) {
+        await copyDirectory(
+          path.join(extractTempDir, platformDir),
+          path.join(destDir, platformDir)
+        );
+      }
+    } else {
+      // If the binary wasn't found where expected, try to locate it
+      console.log(
+        "Binary not found in expected location, trying to locate it..."
+      );
+
+      let foundBunPath = null;
+
+      // Function to recursively search for the bun executable
+      const findBunExecutable = async (dir: string): Promise<string | null> => {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+
+          if (entry.isDirectory()) {
+            const found = await findBunExecutable(fullPath);
+            if (found) return found;
+          } else if (entry.name === "bun") {
+            return fullPath;
+          }
+        }
+
+        return null;
+      };
+
+      // Try to find the bun executable
+      foundBunPath = await findBunExecutable(extractTempDir);
+
+      if (foundBunPath) {
+        console.log(`Found Bun executable at: ${foundBunPath}`);
+
+        // Create the bin directory
+        const binDir = path.join(destDir, "bin");
+        await fsUtils.ensureDirectory(binDir);
+
+        // Copy the Bun executable to the bin directory
+        const targetBunPath = path.join(binDir, "bun");
+        await fs.copyFile(foundBunPath, targetBunPath);
+
+        // Make the binary executable
+        await fs.chmod(targetBunPath, 0o755);
+
+        // Also copy the parent directory for completeness
+        const parentDir = path.dirname(foundBunPath);
+        const parentDirName = path.basename(parentDir);
+
+        if (parentDirName !== "extract") {
+          await copyDirectory(parentDir, path.join(destDir, parentDirName));
+        }
+      } else {
+        throw new Error(
+          `Could not find Bun executable in the downloaded archive`
+        );
+      }
+    }
+
+    // Verify the binary exists in the expected location
+    const bunBinPath = getBunBinaryPath(version);
+    if (!(await fsUtils.exists(bunBinPath))) {
+      throw new Error(`Binary not found at expected path: ${bunBinPath}`);
     }
 
     console.log(`Bun ${version} installed successfully.`);
+  } catch (error: unknown) {
+    // List the files that were extracted to help diagnose issues
+    console.error(
+      `Installation error: ${error instanceof Error ? error.message : String(error)}`
+    );
+
+    try {
+      console.log("Extracted file structure:");
+      const listDir = async (dir: string, indent = 0) => {
+        try {
+          const entries = await fs.readdir(dir, { withFileTypes: true });
+          for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name);
+            console.log(
+              `${"  ".repeat(indent)}- ${entry.name}${entry.isDirectory() ? "/" : ""}`
+            );
+            if (entry.isDirectory()) {
+              await listDir(fullPath, indent + 1);
+            }
+          }
+        } catch (e: unknown) {
+          console.error(
+            `Error listing directory ${dir}: ${e instanceof Error ? e.message : String(e)}`
+          );
+        }
+      };
+      await listDir(destDir);
+    } catch (e: unknown) {
+      // Ignore any errors during diagnosis
+    }
+
+    // Clean up if something went wrong
+    await fsUtils.deleteDirectory(tempDir);
+    throw error;
   } finally {
     // Clean up the temporary directory
     await fsUtils.deleteDirectory(tempDir);
+  }
+}
+
+/**
+ * Copy directory recursively
+ * @param src Source directory
+ * @param dest Destination directory
+ */
+async function copyDirectory(src: string, dest: string): Promise<void> {
+  // Ensure destination directory exists
+  await fsUtils.ensureDirectory(dest);
+
+  // Read source directory
+  const entries = await fs.readdir(src, { withFileTypes: true });
+
+  // Process each entry
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      // Recursively copy directories
+      await copyDirectory(srcPath, destPath);
+    } else {
+      // Copy files
+      await fs.copyFile(srcPath, destPath);
+    }
   }
 }
 
