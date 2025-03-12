@@ -1,8 +1,9 @@
 {
   "name": "bunenv",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A version manager for Bun, inspired by rbenv and pyenv. Allows switching between Bun versions.",
   "module": "src/index.ts",
+  "main": "dist/index.js",
   "type": "module",
   "bin": {
     "bunenv": "bin/bunenv"
@@ -12,10 +13,12 @@
     "bin",
     "src",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "docs"
   ],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node",
+    "build": "bun scripts/build.js",
+    "build:prod": "bun scripts/build.js --prod --clean",
     "start": "bun run src/index.ts",
     "test": "bun test",
     "test:unit": "bun test test/unit",
@@ -23,24 +26,28 @@
     "test:integration": "bun test test/integration",
     "format": "prettier --write 'src/**/*.ts'",
     "lint": "eslint src/ --ext .ts",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "bun run build:prod",
+    "release": "bun run build:prod && npm publish",
+    "release:dry": "bun run build:prod && npm pack",
+    "release:notes": "bun scripts/create-release.js",
+    "release:check": "bun scripts/pre-release-check.js",
+    "version": "npm version"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/semver": "^7.5.8",
-    "@typescript-eslint/eslint-plugin": "latest",
-    "@typescript-eslint/parser": "latest",
-    "eslint": "latest",
-    "prettier": "latest"
-  },
-  "dependencies": {
-    "commander": "latest",
-    "semver": "latest"
-  },
-  "peerDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.4.0",
+    "@typescript-eslint/parser": "^6.4.0",
+    "eslint": "^8.47.0",
+    "prettier": "^3.0.2",
     "typescript": "^5.0.0"
   },
+  "dependencies": {
+    "commander": "^11.0.0",
+    "semver": "^7.5.4"
+  },
   "engines": {
+    "node": ">=16.0.0",
     "bun": ">=1.0.0"
   },
   "repository": {
@@ -56,5 +63,9 @@
     "versions"
   ],
   "author": "Jonathan Philippou",
-  "license": "MIT"
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jonathanphilippou/bunenv/issues"
+  },
+  "homepage": "https://github.com/jonathanphilippou/bunenv#readme"
 }
