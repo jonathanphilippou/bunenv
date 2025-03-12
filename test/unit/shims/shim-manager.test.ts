@@ -16,11 +16,19 @@ const mockFsReaddir = mock(async (dir) => {
   if (dir === "/mock/shims") {
     return ["bun", "bunx"];
   } else if (dir === "/mock/bunenv/versions") {
-    return [{ name: "1.0.0", isDirectory: () => true }];
+    return [{ name: "1.0.0", isDirectory: (): boolean => true }];
   } else if (dir.includes("/bin")) {
     return [
-      { name: "bun", isDirectory: () => false, isFile: () => true },
-      { name: "bunx", isDirectory: () => false, isFile: () => true },
+      {
+        name: "bun",
+        isDirectory: (): boolean => false,
+        isFile: (): boolean => true,
+      },
+      {
+        name: "bunx",
+        isDirectory: (): boolean => false,
+        isFile: (): boolean => true,
+      },
     ];
   }
   return [];
