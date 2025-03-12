@@ -2,27 +2,30 @@ import { describe, expect, mock, test } from "bun:test";
 import fs from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
+import { getBunenvRoot, getVersionsDir } from "../src/core/paths";
 import {
-  BUNENV_ROOT,
-  VERSIONS_DIR,
   getBunPath,
   isVersionInstalled,
 } from "../src/versions/version-manager";
 
 describe("Version Manager", () => {
   // Check paths are set correctly
-  test("BUNENV_ROOT should be set to ~/.bunenv by default", () => {
-    expect(BUNENV_ROOT).toBe(path.join(homedir(), ".bunenv"));
+  test("getBunenvRoot should be set to ~/.bunenv by default", () => {
+    const bunenvRoot = getBunenvRoot();
+    expect(bunenvRoot).toBe(path.join(homedir(), ".bunenv"));
   });
 
-  test("VERSIONS_DIR should be inside BUNENV_ROOT", () => {
-    expect(VERSIONS_DIR).toBe(path.join(BUNENV_ROOT, "versions"));
+  test("getVersionsDir should be inside getBunenvRoot", () => {
+    const bunenvRoot = getBunenvRoot();
+    const versionsDir = getVersionsDir();
+    expect(versionsDir).toBe(path.join(bunenvRoot, "versions"));
   });
 
   // Test getting Bun path
   test("getBunPath should return the correct path", () => {
     const version = "1.0.0";
-    const expected = path.join(VERSIONS_DIR, version, "bin", "bun");
+    const versionsDir = getVersionsDir();
+    const expected = path.join(versionsDir, version, "bin", "bun");
     expect(getBunPath(version)).toBe(expected);
   });
 

@@ -1,5 +1,7 @@
 import { Command } from "commander";
-import { SHIMS_DIR } from "../versions/version-manager";
+import { getShellType } from "../core/environment";
+import { getShimsDir } from "../core/paths";
+import { info, logError } from "./utils/output";
 
 /**
  * Configures the init command for the CLI
@@ -12,29 +14,42 @@ export function initCommand(program: Command): void {
     .description("Configure shell integration for bunenv")
     .option("-s, --shell <type>", "Specify shell type (bash, zsh, fish)", "")
     .action(async (options) => {
-      // Detect shell if not specified
-      let shell = options.shell || process.env.SHELL || "";
-      if (shell) {
-        // Extract the shell name from the path
-        shell = shell.split("/").pop() || "";
-      }
+      try {
+        // Detect shell if not specified
+        let shell = options.shell || process.env.SHELL || "";
+        if (shell) {
+          // Extract the shell name from the path
+          shell = shell.split("/").pop() || "";
+        }
 
-      // Generate the appropriate shell script
-      let script = "";
-      switch (shell) {
-        case "fish":
-          script = generateFishScript();
-          break;
-        case "zsh":
-          script = generateZshScript();
-          break;
-        case "bash":
-        default:
-          script = generateBashScript();
-      }
+        // Use environment detection if not explicitly specified
+        if (!options.shell) {
+          shell = getShellType();
+        }
 
-      // Output the script to stdout
-      console.log(script);
+        // Generate the appropriate shell script
+        let script = "";
+        switch (shell) {
+          case "fish":
+            script = generateFishScript();
+            break;
+          case "zsh":
+            script = generateZshScript();
+            break;
+          case "bash":
+          default:
+            script = generateBashScript();
+        }
+
+        // Output the script to stdout
+        info(script);
+      } catch (error) {
+        logError(
+          "Failed to generate shell initialization script",
+          error as Error
+        );
+        process.exit(1);
+      }
     });
 }
 
@@ -43,7 +58,7 @@ export function initCommand(program: Command): void {
  */
 function generateBashScript(): string {
   return `# bunenv shell integration
-export PATH="${SHIMS_DIR}:$PATH"
+export PATH="${getShimsDir()}:$PATH"
 export BUNENV_ROOT="$HOME/.bunenv"
 
 bunenv_init() {
@@ -60,7 +75,7 @@ bunenv_init
  */
 function generateZshScript(): string {
   return `# bunenv shell integration
-export PATH="${SHIMS_DIR}:$PATH"
+export PATH="${getShimsDir()}:$PATH"
 export BUNENV_ROOT="$HOME/.bunenv"
 
 bunenv_init() {
@@ -77,7 +92,7 @@ bunenv_init
  */
 function generateFishScript(): string {
   return `# bunenv shell integration
-set -gx PATH "${SHIMS_DIR}" $PATH
+set -gx PATH "${getShimsDir()}" $PATH
 set -gx BUNENV_ROOT "$HOME/.bunenv"
 
 function bunenv_init

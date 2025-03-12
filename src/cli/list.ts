@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import { resolveVersion } from "../resolvers/version-resolver";
 import { listInstalledVersions } from "../versions/version-manager";
+import { formatList, info, logError } from "./utils/output";
 
 /**
  * Configures the list command for the CLI
@@ -12,31 +13,29 @@ export function listCommand(program: Command): void {
     .command("list")
     .alias("ls")
     .description("List all installed Bun versions")
-    .action(async () => {
+    .option("-a, --all", "Show all versions, including system installations")
+    .action(async (options) => {
       try {
         const installedVersions = await listInstalledVersions();
 
         if (installedVersions.length === 0) {
-          console.log("No Bun versions installed.");
-          console.log(
-            "You can install a version with: bunenv install <version>"
-          );
+          info("No Bun versions installed.");
+          info("You can install a version with: bunenv install <version>");
           return;
         }
 
         // Get the current active version to mark it
         const currentVersion = await resolveVersion();
 
-        console.log("Installed Bun versions:");
-        for (const version of installedVersions) {
-          if (version === currentVersion) {
-            console.log(`* ${version} (current)`);
-          } else {
-            console.log(`  ${version}`);
-          }
+        info("Installed Bun versions:");
+        info(formatList(installedVersions, currentVersion || undefined));
+
+        // Show system Bun if available and --all flag is used
+        if (options.all) {
+          // TODO: Implement system Bun detection in a future ticket
         }
       } catch (error) {
-        console.error((error as Error).message);
+        logError("Failed to list installed Bun versions", error as Error);
         process.exit(1);
       }
     });

@@ -1,305 +1,231 @@
+/**
+ * Version Manager Module
+ * Handles installation, listing, and management of Bun versions
+ */
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
-import { homedir } from "node:os";
 import path from "node:path";
 import semver from "semver";
 
-/**
- * Root directory for bunenv installations
- */
-export const BUNENV_ROOT =
-  process.env.BUNENV_ROOT || path.join(homedir(), ".bunenv");
+import { getBunDownloadUrl as getConfigBunDownloadUrl } from "../core/config";
+import { getOperatingSystem } from "../core/environment";
+import {
+  getBunBinaryPath,
+  getGlobalVersionFile,
+  getLocalVersionFileName,
+  getVersionsDir,
+} from "../core/paths";
+import * as fsUtils from "../utils/fs";
 
 /**
- * Directory where bun versions are installed
+ * Execute a command and return its output
+ * @param command Command to execute
+ * @param args Command arguments
+ * @returns Command output as string
  */
-export const VERSIONS_DIR = path.join(BUNENV_ROOT, "versions");
-
-/**
- * Directory where shims are installed
- */
-export const SHIMS_DIR = path.join(BUNENV_ROOT, "shims");
-
-/**
- * Base URL for downloading Bun releases
- */
-export const BUN_DOWNLOAD_URL =
-  "https://github.com/oven-sh/bun/releases/download";
-
-/**
- * Executes a command and returns the output
- *
- * @param command - Command to execute
- * @param args - Arguments for the command
- * @returns Promise resolving to stdout output or rejecting with stderr
- */
-function execCommand(command: string, args: string[]): Promise<string> {
+async function execCommand(command: string, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(command, args);
+    const child = spawn(command, args);
     let stdout = "";
     let stderr = "";
 
-    proc.stdout.on("data", (data) => {
+    child.stdout.on("data", (data) => {
       stdout += data.toString();
     });
 
-    proc.stderr.on("data", (data) => {
+    child.stderr.on("data", (data) => {
       stderr += data.toString();
     });
 
-    proc.on("close", (code) => {
+    child.on("close", (code) => {
       if (code === 0) {
         resolve(stdout.trim());
       } else {
-        reject(new Error(`Command failed with code ${code}: ${stderr}`));
+        reject(new Error(`Command failed: ${stderr}`));
       }
     });
   });
 }
 
 /**
- * Gets a list of all installed Bun versions
- *
+ * List all installed Bun versions
  * @returns Array of installed version strings
  */
 export async function listInstalledVersions(): Promise<string[]> {
+  const versionsDir = getVersionsDir();
+
   try {
-    await fs.access(VERSIONS_DIR, fs.constants.R_OK);
-    const entries = await fs.readdir(VERSIONS_DIR);
+    // Ensure the versions directory exists
+    await fsUtils.ensureDirectory(versionsDir);
 
-    // Filter out any non-directories and sort by semver
-    const versions = await Promise.all(
-      entries.map(async (entry) => {
-        const stats = await fs.stat(path.join(VERSIONS_DIR, entry));
-        return stats.isDirectory() ? entry : null;
-      })
-    );
+    // Get all subdirectories in the versions directory
+    const entries = await fs.readdir(versionsDir, { withFileTypes: true });
+    const versionDirs = entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
 
-    return versions
-      .filter((v): v is string => v !== null)
-      .sort((a, b) => {
-        return semver.compare(a, b);
-      });
+    // Filter out invalid semver versions and sort
+    return versionDirs
+      .filter((version) => semver.valid(version))
+      .sort(semver.compare);
   } catch (error) {
-    // Directory doesn't exist or isn't readable
+    // If there's an error, return an empty array
     return [];
   }
 }
 
 /**
- * Checks if a specific Bun version is installed
- *
- * @param version - Version to check
- * @returns True if the version is installed
+ * Check if a specific Bun version is installed
+ * @param version Version to check
+ * @returns True if the version is installed, false otherwise
  */
 export async function isVersionInstalled(version: string): Promise<boolean> {
-  try {
-    await fs.access(path.join(VERSIONS_DIR, version), fs.constants.R_OK);
-    return true;
-  } catch (error) {
-    return false;
-  }
+  // Check if the binary exists
+  const bunPath = getBunBinaryPath(version);
+  return fsUtils.exists(bunPath);
 }
 
 /**
- * Gets the path to the bun executable for a specific version
- *
- * @param version - Version to get the path for
- * @returns Path to the bun executable
- * @throws Error if the version is not installed
+ * Get the path to the Bun binary for a specific version
+ * @param version Bun version
+ * @returns Path to the Bun binary
  */
 export function getBunPath(version: string): string {
-  return path.join(VERSIONS_DIR, version, "bin", "bun");
+  return getBunBinaryPath(version);
 }
 
 /**
- * Determines the platform-specific download URL for a Bun version
- *
- * @param version - Bun version to download
- * @returns The URL for downloading the specific Bun version
+ * Get the download URL for a specific Bun version
+ * @param version Bun version to download
+ * @returns Download URL
  */
 function getBunDownloadUrl(version: string): string {
-  const platform = process.platform;
-  const arch = process.arch;
-
-  let platformStr: string;
-  let archStr: string;
-
-  // Determine platform string
-  switch (platform) {
-    case "darwin":
-      platformStr = "darwin";
-      break;
-    case "linux":
-      platformStr = "linux";
-      break;
-    case "win32":
-      platformStr = "windows";
-      break;
-    default:
-      throw new Error(`Unsupported platform: ${platform}`);
-  }
-
-  // Determine architecture string
-  switch (arch) {
-    case "x64":
-      archStr = "x64";
-      break;
-    case "arm64":
-      archStr = "aarch64";
-      break;
-    default:
-      throw new Error(`Unsupported architecture: ${arch}`);
-  }
-
-  // Construct filename based on platform
-  let filename: string;
-  if (platform === "win32") {
-    filename = `bun-${platformStr}-${archStr}.zip`;
-  } else {
-    filename = `bun-${platformStr}-${archStr}.zip`;
-  }
-
-  return `${BUN_DOWNLOAD_URL}/bun-v${version}/${filename}`;
+  return getConfigBunDownloadUrl(version);
 }
 
 /**
- * Downloads and extracts a specific Bun version
- *
- * @param version - Version to download
- * @param destDir - Destination directory
- * @returns Promise that resolves when download and extraction are complete
+ * Download and extract the Bun binary for a specific version
+ * @param version Version to download
+ * @param destDir Destination directory
  */
 async function downloadBunBinary(
   version: string,
   destDir: string
 ): Promise<void> {
-  const url = getBunDownloadUrl(version);
-  const tempZipPath = path.join(destDir, `bun-${version}.zip`);
+  // Ensure the destination directory exists
+  await fsUtils.ensureDirectory(destDir);
 
-  console.log(`Downloading Bun ${version} from ${url}`);
+  // Get the download URL
+  const downloadUrl = getBunDownloadUrl(version);
+
+  // Create a temporary directory for the download
+  const tempDir = path.join(destDir, "_temp");
+  await fsUtils.ensureDirectory(tempDir);
 
   try {
-    // Download using curl or wget
-    try {
-      await execCommand("curl", ["-L", "-o", tempZipPath, url]);
-    } catch (curlError) {
-      // Try wget if curl fails
-      await execCommand("wget", ["-O", tempZipPath, url]);
+    // Download the binary
+    console.log(`Downloading Bun ${version}...`);
+    const zipPath = path.join(tempDir, `bun-${version}.zip`);
+
+    // Use the built-in fetch API to download the file
+    const response = await fetch(downloadUrl);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to download Bun ${version}: ${response.statusText}`
+      );
     }
 
-    // Create bin directory
-    const binDir = path.join(destDir, "bin");
-    await fs.mkdir(binDir, { recursive: true });
+    // Save the file
+    const buffer = await response.arrayBuffer();
+    await fs.writeFile(zipPath, Buffer.from(buffer));
 
     // Extract the zip file
-    if (process.platform === "win32") {
-      // Use unzip for Windows
+    console.log(`Extracting Bun ${version}...`);
+
+    // Use different extraction methods depending on the OS
+    if (getOperatingSystem() === "windows") {
+      // Use PowerShell to extract on Windows
       await execCommand("powershell", [
         "-Command",
-        `Expand-Archive -Path "${tempZipPath}" -DestinationPath "${destDir}" -Force`,
+        `Expand-Archive -Path "${zipPath}" -DestinationPath "${destDir}" -Force`,
       ]);
     } else {
-      // Use unzip for Unix-like systems
-      await execCommand("unzip", ["-o", tempZipPath, "-d", destDir]);
+      // Use unzip on Unix-like systems
+      await execCommand("unzip", ["-q", "-o", zipPath, "-d", destDir]);
     }
 
-    // Move files from extracted directory to the destination
-    // This assumes the zip contains a directory named "bun-vX.Y.Z"
-    const extractedDir = path.join(
-      destDir,
-      `bun-${process.platform}-${process.arch}`
-    );
-    if (await fileExists(extractedDir)) {
-      // Move all files from extractedDir to destDir
-      const files = await fs.readdir(extractedDir);
-      await Promise.all(
-        files.map(async (file) => {
-          const sourcePath = path.join(extractedDir, file);
-          const destPath = path.join(destDir, file);
-          await fs.rename(sourcePath, destPath);
-        })
-      );
-
-      // Remove the now empty extracted directory
-      await fs.rmdir(extractedDir);
+    // Make the binary executable on Unix-like systems
+    if (getOperatingSystem() !== "windows") {
+      const bunBin = getBunBinaryPath(version);
+      await fs.chmod(bunBin, 0o755);
     }
 
-    // Make bun executable
-    const bunExePath = path.join(binDir, "bun");
-    if (await fileExists(bunExePath)) {
-      await fs.chmod(bunExePath, 0o755);
-    }
-
-    // Remove the zip file
-    await fs.unlink(tempZipPath);
-  } catch (error) {
-    throw new Error(
-      `Failed to download and extract Bun ${version}: ${(error as Error).message}`
-    );
+    console.log(`Bun ${version} installed successfully.`);
+  } finally {
+    // Clean up the temporary directory
+    await fsUtils.deleteDirectory(tempDir);
   }
 }
 
 /**
- * Helper function to check if a file exists
+ * Check if a file exists
+ * @param filePath Path to check
+ * @returns True if the file exists, false otherwise
  */
 async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
+  return fsUtils.exists(filePath);
 }
 
 /**
- * Installs a specific version of Bun
- *
- * @param version - Version to install
- * @returns Promise that resolves when installation is complete
+ * Install a specific Bun version
+ * @param version Version to install
+ * @param force Force reinstall even if already installed
  */
-export async function installVersion(version: string): Promise<void> {
-  // Create the versions directory if it doesn't exist
-  await fs.mkdir(VERSIONS_DIR, { recursive: true });
+export async function installVersion(
+  version: string,
+  force: boolean = false
+): Promise<void> {
+  // Normalize the version (remove leading v if present)
+  const normalizedVersion = version.startsWith("v")
+    ? version.slice(1)
+    : version;
 
-  const versionDir = path.join(VERSIONS_DIR, version);
-
-  // Check if version is already installed
-  if (await isVersionInstalled(version)) {
-    console.log(`Bun ${version} is already installed.`);
+  // Check if already installed (unless force is true)
+  if (!force && (await isVersionInstalled(normalizedVersion))) {
+    console.log(`Bun ${normalizedVersion} is already installed.`);
     return;
   }
 
-  console.log(`Installing Bun ${version}...`);
+  // Create the version directory (removing it first if it exists and force is true)
+  const versionDir = path.join(getVersionsDir(), normalizedVersion);
+
+  if (force && (await fsUtils.exists(versionDir))) {
+    console.log(
+      `Removing existing installation of Bun ${normalizedVersion}...`
+    );
+    await fsUtils.deleteDirectory(versionDir);
+  }
 
   try {
-    // Create the version directory
-    await fs.mkdir(versionDir, { recursive: true });
+    // Download and install
+    await downloadBunBinary(normalizedVersion, versionDir);
 
-    // Download and extract Bun binary
-    await downloadBunBinary(version, versionDir);
-
-    console.log(`Bun ${version} has been installed.`);
-  } catch (error) {
-    // Clean up on failure
-    try {
-      await fs.rm(versionDir, { recursive: true, force: true });
-    } catch (cleanupError) {
-      // Ignore cleanup errors
+    // Check if installation was successful
+    if (!(await fileExists(getBunBinaryPath(normalizedVersion)))) {
+      throw new Error(`Failed to install Bun ${normalizedVersion}.`);
     }
 
-    throw new Error(
-      `Failed to install Bun ${version}: ${(error as Error).message}`
-    );
+    console.log(`Bun ${normalizedVersion} installed successfully.`);
+  } catch (error) {
+    // Clean up if something went wrong
+    await fsUtils.deleteDirectory(versionDir);
+    throw error;
   }
 }
 
 /**
- * Sets the global default Bun version
- *
- * @param version - Version to set as global default
- * @returns Promise that resolves when the global version is set
- * @throws Error if the version is not installed
+ * Set the global Bun version
+ * @param version Version to set as global
  */
 export async function setGlobalVersion(version: string): Promise<void> {
   // Check if the version is installed
@@ -310,20 +236,18 @@ export async function setGlobalVersion(version: string): Promise<void> {
   }
 
   // Create the bunenv root directory if it doesn't exist
-  await fs.mkdir(BUNENV_ROOT, { recursive: true });
+  const globalVersionFile = getGlobalVersionFile();
+  await fsUtils.ensureDirectory(path.dirname(globalVersionFile));
 
   // Write the version to the global version file
-  await fs.writeFile(path.join(BUNENV_ROOT, "version"), version);
+  await fsUtils.writeFile(globalVersionFile, version);
 
-  console.log(`Global Bun version set to ${version}`);
+  console.log(`Global Bun version set to ${version}.`);
 }
 
 /**
- * Sets the local Bun version for the current directory
- *
- * @param version - Version to set as local
- * @returns Promise that resolves when the local version is set
- * @throws Error if the version is not installed
+ * Set the local Bun version for the current directory
+ * @param version Version to set as local
  */
 export async function setLocalVersion(version: string): Promise<void> {
   // Check if the version is installed
@@ -334,7 +258,8 @@ export async function setLocalVersion(version: string): Promise<void> {
   }
 
   // Write the version to the local version file
-  await fs.writeFile(path.join(process.cwd(), ".bun-version"), version);
+  const localVersionFile = path.join(process.cwd(), getLocalVersionFileName());
+  await fsUtils.writeFile(localVersionFile, version);
 
-  console.log(`Local Bun version set to ${version}`);
+  console.log(`Local Bun version set to ${version}.`);
 }

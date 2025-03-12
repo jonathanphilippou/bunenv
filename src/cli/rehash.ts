@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { rehashShims } from "../shims/shim-manager";
+import { logError, success } from "./utils/output";
 
 /**
  * Configures the rehash command for the CLI
@@ -13,8 +14,9 @@ export function rehashCommand(program: Command): void {
     .action(async () => {
       try {
         await rehashShims();
+        success("Bun shim executables rebuilt successfully");
       } catch (error) {
-        console.error((error as Error).message);
+        logError("Failed to rebuild Bun shim executables", error as Error);
         process.exit(1);
       }
     });
