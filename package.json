@@ -5,7 +5,7 @@
   "module": "src/index.ts",
   "type": "module",
   "bin": {
-    "bunenv": "./bin/bunenv"
+    "bunenv": "bin/bunenv"
   },
   "files": [
     "dist",
@@ -42,7 +42,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/bunenv.git"
+    "url": "git+https://github.com/jonathanphilippou/bunenv.git"
   },
   "keywords": [
     "bun",
@@ -52,6 +52,6 @@
     "bunenv",
     "versions"
   ],
-  "author": "Your Name",
+  "author": "Jonathan Philippou",
   "license": "MIT"
 }
