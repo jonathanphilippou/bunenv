@@ -11,7 +11,7 @@ Create the core module that provides foundational functionality for the bunenv t
 - [x] Implement the `paths.ts` module for centralizing and standardizing path references
 - [x] Implement the `environment.ts` module for OS and shell detection
 - [x] Create unit tests for all core module functionality
-- [ ] Update any existing code to use the new core modules
+- [x] Update any existing code to use the new core modules
 
 ## Acceptance Criteria
 
@@ -20,7 +20,7 @@ Create the core module that provides foundational functionality for the bunenv t
 - [x] Path handling is standardized in `paths.ts` with consistent naming
 - [x] Environment detection provides accurate information about the OS and shell
 - [x] All core module functions are covered by unit tests
-- [ ] The modules are imported and used in at least one other part of the codebase
+- [x] The modules are imported and used in at least one other part of the codebase
 
 ## Notes
 

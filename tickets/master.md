@@ -17,9 +17,9 @@ This document tracks all tickets for the bunenv refactoring project.
 - [x] TICKET-001: Set up project management structure
 - [x] TICKET-002: Create test pyramid structure
 - [x] TICKET-003: Implement core module
-- [ ] TICKET-004: Implement version resolver
-- [ ] TICKET-005: Implement shim generation system
-- [ ] TICKET-006: Implement version installation system
+- [x] TICKET-004: Implement version resolver
+- [x] TICKET-005: Implement shim generation system
+- [x] TICKET-006: Implement version installation system
 - [ ] TICKET-007: Refactor CLI commands
 
 ### Specific Features/Fixes

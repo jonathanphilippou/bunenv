@@ -23,7 +23,7 @@ export function getVersionsDir(): string {
 }
 
 /**
- * Get the directory where shims are installed
+ * Get the directory where shims are stored
  * @returns The path to the shims directory
  */
 export function getShimsDir(): string {
@@ -31,11 +31,36 @@ export function getShimsDir(): string {
 }
 
 /**
- * Get the file that stores the global Bun version
+ * Get the path to the global version file
  * @returns The path to the global version file
  */
 export function getGlobalVersionFile(): string {
   return path.join(getBunenvRoot(), "version");
+}
+
+/**
+ * Get the name of the local version file
+ * @returns The name of the local version file
+ */
+export function getLocalVersionFileName(): string {
+  return ".bun-version";
+}
+
+/**
+ * Get the path to the bunenv executable
+ * @returns The path to the bunenv executable
+ */
+export function getBunenvExecutable(): string {
+  return path.join(getBunenvRoot(), "bin", "bunenv");
+}
+
+/**
+ * Get the path to a specific Bun version
+ * @param version The Bun version
+ * @returns The path to the specified Bun version
+ */
+export function getVersionPath(version: string): string {
+  return path.join(getVersionsDir(), version);
 }
 
 /**
@@ -48,18 +73,19 @@ export function getBunBinaryPath(version: string): string {
 }
 
 /**
- * Get the name of the local version file
- * @returns The local version file name
+ * Get the path to the Bun executable for a specific version
+ * @param version The Bun version
+ * @returns The path to the Bun executable for the specified version
  */
-export function getLocalVersionFileName(): string {
-  return ".bun-version";
+export function getBunExecutable(version: string): string {
+  return getBunBinaryPath(version);
 }
 
 /**
- * Normalize a path for cross-platform compatibility
- * @param filePath The path to normalize
+ * Normalize a path for the current platform
+ * @param p The path to normalize
  * @returns The normalized path
  */
-export function normalizePath(filePath: string): string {
-  return path.normalize(filePath);
+export function normalizePath(p: string): string {
+  return path.normalize(p);
 }
