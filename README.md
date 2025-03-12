@@ -30,7 +30,7 @@ source ~/.zshrc  # or ~/.bashrc / ~/.profile
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/bunenv.git
+git clone https://github.com/jonathanphilippou/bunenv.git
 
 # Navigate to the directory
 cd bunenv
@@ -126,3 +126,11 @@ The selected Bun version is then executed from `~/.bunenv/versions/<version>/bin
 ## License
 
 MIT
+
+# Using npm
+
+npm install -g bunenv
+
+# Using bun
+
+bun install -g bunenv
