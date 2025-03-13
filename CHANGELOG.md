@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6] - 2024-03-13
+
+### Fixed
+
+- Fixed version file formatting in global version file
+- Improved version switching reliability
+- Ensured proper shim behavior with global version changes
+
 ## [0.2.5] - 2024-03-13
 
 ### Added
