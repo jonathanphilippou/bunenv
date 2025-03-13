@@ -18,10 +18,10 @@ class Bunenv < Formula
       // For shell integration (automatic version switching):
       console.log("\\n📌 Add shell integration to your profile:");
       console.log("\\n# For ~/.zshrc, ~/.bashrc or ~/.bash_profile:");
-      console.log("eval \"$(bunenv init -)\"\n");
+      console.log('eval "$(bunenv init -)"');
       
       // Show basic commands
-      console.log("🔍 Basic commands:");
+      console.log("\\n🔍 Basic commands:");
       console.log("  bunenv install <version>  - Install a Bun version");
       console.log("  bunenv global <version>   - Set global Bun version");
       console.log("  bunenv local <version>    - Set local Bun version");
