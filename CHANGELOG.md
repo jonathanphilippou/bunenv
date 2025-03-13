@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5] - 2024-03-13
+
+### Added
+
+- Improved Homebrew formula with intelligent command handling
+- Added post-installation message with shell integration instructions
+- Enhanced user experience for different commands
+
+### Changed
+
+- Different output based on command: full help for `--help` and no args, version for `-v`, simpler message for others
+
 ## [0.2.4] - 2024-03-13
 
 ### Added
