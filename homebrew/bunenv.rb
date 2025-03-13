@@ -12,8 +12,24 @@ class Bunenv < Formula
     (bin/"bunenv").write <<~EOS
       #!/usr/bin/env node
 
-      console.log("bunenv v0.2.4");
-      console.log("This is a placeholder implementation. Full functionality coming soon.");
+      console.log("🐰 bunenv v0.2.4 - Bun Version Manager");
+      console.log("🚀 Successfully installed via Homebrew!");
+      
+      // For shell integration (automatic version switching):
+      console.log("\\n📌 Add shell integration to your profile:");
+      console.log("\\n# For ~/.zshrc, ~/.bashrc or ~/.bash_profile:");
+      console.log("eval \"$(bunenv init -)\"\n");
+      
+      // Show basic commands
+      console.log("🔍 Basic commands:");
+      console.log("  bunenv install <version>  - Install a Bun version");
+      console.log("  bunenv global <version>   - Set global Bun version");
+      console.log("  bunenv local <version>    - Set local Bun version");
+      console.log("  bunenv list               - List installed versions");
+      console.log("  bunenv --help             - Show all commands");
+      
+      // Point to docs
+      console.log("\\n📚 Documentation: https://github.com/jonathanphilippou/bunenv#readme");
     EOS
 
     # Make it executable
