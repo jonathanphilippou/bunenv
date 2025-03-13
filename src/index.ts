@@ -20,7 +20,7 @@ import { versionCommand } from "./cli/version";
 program
   .name("bunenv")
   .description("A version manager for Bun, inspired by rbenv and pyenv")
-  .version(version);
+  .version(version, "-v, --version", "Output the current bunenv version");
 
 // Register commands
 globalCommand(program);
