@@ -4,12 +4,13 @@ This document outlines the current status and future plans for the Homebrew inte
 
 ## Current Status
 
-As of bunenv v0.2.3, we have:
+As of bunenv v0.2.4, we have:
 
 - Created a Homebrew formula in our own tap repository
 - Successfully tested the installation via Homebrew
 - Updated the README with installation instructions
 - Set up automation for updating the formula when new versions are released
+- Created a robust update script for Homebrew formula maintenance
 
 The current Homebrew implementation is a placeholder that prints the version number and a message. This is intentional as we work towards a more production-ready implementation.
 
@@ -27,6 +28,25 @@ The Homebrew formula is located in:
 
 - GitHub repository: https://github.com/jonathanphilippou/homebrew-tap
 - Formula file: Formula/bunenv.rb
+
+## Updating the Homebrew Formula
+
+When a new version of bunenv is released, the Homebrew formula needs to be updated. We have automated this process with a script:
+
+```bash
+# Run from the bunenv repository root
+bun homebrew:update
+```
+
+This script:
+
+1. Gets the current version from package.json
+2. Calculates the SHA256 hash of the GitHub tarball
+3. Updates the local formula in the repository
+4. Clones the tap repository
+5. Updates the formula in the tap repository
+6. Commits and pushes the changes
+7. Cleans up temporary files
 
 ## Known Issues
 
@@ -51,8 +71,8 @@ The Homebrew formula is located in:
    - Document the submission process and requirements
 
 4. **Automation**
-   - Improve the update-homebrew.js script to handle more edge cases
    - Add CI/CD workflows for automatic formula updates
+   - Integrate Homebrew updates into the release workflow
 
 ## Roadmap to Homebrew Core Submission
 

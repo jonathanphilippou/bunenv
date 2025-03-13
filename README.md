@@ -9,6 +9,7 @@ A version manager for Bun JavaScript runtime, inspired by tools like rbenv and n
 - 🔍 Automatic version detection using `.bun-version` files
 - 🛠️ Shell integration for seamless version switching
 - 🐚 Support for bash, zsh, and fish shells
+- 🍺 Homebrew installation support
 
 ## Development Status
 
@@ -312,40 +313,50 @@ We follow a test pyramid approach:
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+We welcome contributions of all kinds! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
 
 ### Getting Started
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Clone your fork: `git clone https://github.com/yourusername/bunenv.git`
+3. Install dependencies: `bun install`
+4. Create a branch for your contribution: `git checkout -b my-feature-branch`
 
-### Code Style
+### Development Workflow
 
-We follow these conventions:
+1. Make your changes
+2. Run tests: `bun test`
+3. Format your code: `bun run format`
+4. Commit your changes following [conventional commits](https://www.conventionalcommits.org/)
+5. Push to your fork and submit a pull request
 
-- Use TypeScript for type safety
-- Follow consistent naming conventions
-- Include JSDoc comments for public APIs
-- Write unit tests for new functionality
+### Homebrew Formula Development
 
-### Pull Request Process
+If you're working on improving the Homebrew integration:
 
-1. Ensure your code passes all tests (`bun test`)
-2. Update documentation if needed
-3. Include a clear description of the changes
-4. Reference any related issues in your PR description
+1. Read the [Homebrew documentation](docs/HOMEBREW.md) to understand the current implementation
+2. Test any changes locally with `brew install --build-from-source ./homebrew/bunenv.rb`
+3. Update the formula using the automated script: `bun homebrew:update`
 
-### Roadmap and Future Features
+### Code Standards
 
-We're planning to add:
+- Follow TypeScript best practices
+- Write tests for new functionality
+- Document your code with JSDoc comments
+- Keep commits focused and descriptive
 
-- Support for more shell types
-- Version range specifications
-- Plugin system for extensions
-- Interactive version installation
+### Documentation
+
+When adding or changing features, please update the relevant documentation:
+
+- README.md for general usage information
+- Specific documentation files in the `docs/` directory
+
+For detailed information on specific topics, check out these resources:
+
+- [Contribution Guidelines](./docs/CONTRIBUTING.md)
+- [Code of Conduct](./docs/CODE_OF_CONDUCT.md)
+- [Homebrew Integration](./docs/HOMEBREW.md)
 
 ## License
 
