@@ -59,6 +59,16 @@ wget -qO- https://raw.githubusercontent.com/jonathanphilippou/bunenv/main/instal
 
 This script will install bunenv and set up shell integration automatically.
 
+### Install via Homebrew (macOS and Linux)
+
+```bash
+brew install jonathanphilippou/tap/bunenv
+
+# Then set up shell integration
+bunenv init >> ~/.bashrc  # or your appropriate shell config file
+source ~/.bashrc
+```
+
 ### Install via npm
 
 ```bash

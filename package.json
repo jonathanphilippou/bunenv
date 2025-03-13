@@ -31,6 +31,7 @@
     "release:dry": "bun run build:prod && npm pack",
     "release:notes": "bun scripts/create-release.js",
     "release:check": "bun scripts/pre-release-check.js",
+    "homebrew:update": "bun scripts/update-homebrew.js",
     "version": "npm version"
   },
   "devDependencies": {
