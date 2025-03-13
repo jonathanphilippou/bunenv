@@ -7,23 +7,35 @@
 // This bypasses the shim mechanism to avoid circular dependencies
 process.env.BUNENV_BYPASS_SHIM = "1";
 
-// Handle both npm and Homebrew installation paths
+// Handle various installation paths
 const paths = [
   "../dist/index.js", // npm standard path
-  "../libexec/lib/node_modules/bunenv/dist/index.js", // Homebrew path
+  "../libexec/lib/node_modules/bunenv/dist/index.js", // npm global path
   "../src/index.js", // Development fallback
+  "./dist/index.js", // Local dist directory
+  "dist/index.js", // Adjacent dist directory
+  require("path").join(__dirname, "../dist/index.js"), // Absolute path
+  require("path").join(
+    process.env.HOMEBREW_PREFIX || "/opt/homebrew",
+    "Cellar/bunenv/*/libexec/dist/index.js"
+  ), // Homebrew path
 ];
 
 // Try each path in sequence
 async function tryPaths(index = 0) {
   if (index >= paths.length) {
     console.error("Failed to load bunenv: Could not find entry point");
+    console.error("Attempted paths:");
+    paths.forEach((path) => console.error(`  - ${path}`));
     process.exit(1);
   }
 
   try {
     await import(paths[index]);
   } catch (error) {
+    // Debug info for troubleshooting
+    // console.error(`Error loading from ${paths[index]}: ${error.message}`);
+
     // Try the next path
     tryPaths(index + 1);
   }
