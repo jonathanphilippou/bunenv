@@ -1,6 +1,6 @@
 {
   "name": "bunenv",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "A version manager for Bun, inspired by rbenv and pyenv. Allows switching between Bun versions.",
   "module": "src/index.ts",
   "main": "dist/index.js",

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2024-03-13
+
+### Added
+
+- Homebrew tap for simplified installation on macOS and Linux
+- Improved bin/bunenv script to better handle different installation paths
+- Documentation for Homebrew integration (docs/HOMEBREW.md)
+
+### Fixed
+
+- Fixed compatibility issues with Homebrew installation
+- Enhanced error handling in path resolution for better diagnostics
+
 ## [0.2.3] - 2024-03-13
 
 ### Added
