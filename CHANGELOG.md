@@ -7,10 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2024-03-13
+
 ### Added
 
 - Homebrew formula for easier installation on macOS and Linux
 - Script to automate Homebrew formula updates
+- Homebrew installation fix script
+
+### Fixed
+
+- Fixed executable path in Homebrew installation
+- Improved bin/bunenv script to support multiple installation paths
+- Enhanced Homebrew formula to ensure correct symlink creation
 
 ## [0.2.2] - 2024-03-12
 

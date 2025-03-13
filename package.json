@@ -1,6 +1,6 @@
 {
   "name": "bunenv",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "A version manager for Bun, inspired by rbenv and pyenv. Allows switching between Bun versions.",
   "module": "src/index.ts",
   "main": "dist/index.js",
@@ -32,6 +32,7 @@
     "release:notes": "bun scripts/create-release.js",
     "release:check": "bun scripts/pre-release-check.js",
     "homebrew:update": "bun scripts/update-homebrew.js",
+    "homebrew:fix": "bun fix-homebrew-installation.js",
     "version": "npm version"
   },
   "devDependencies": {

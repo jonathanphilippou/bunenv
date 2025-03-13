@@ -7,16 +7,27 @@
 // This bypasses the shim mechanism to avoid circular dependencies
 process.env.BUNENV_BYPASS_SHIM = "1";
 
-// Execute the actual bunenv CLI
-try {
-  import('../dist/index.js').catch(() => {
-    // Fallback to src for development
-    import('../src/index.js').catch(error => {
-      console.error("Failed to load bunenv:", error);
-      process.exit(1);
-    });
-  });
-} catch (error) {
-  console.error("Failed to load bunenv:", error);
-  process.exit(1);
-} 
+// Handle both npm and Homebrew installation paths
+const paths = [
+  "../dist/index.js", // npm standard path
+  "../libexec/lib/node_modules/bunenv/dist/index.js", // Homebrew path
+  "../src/index.js", // Development fallback
+];
+
+// Try each path in sequence
+async function tryPaths(index = 0) {
+  if (index >= paths.length) {
+    console.error("Failed to load bunenv: Could not find entry point");
+    process.exit(1);
+  }
+
+  try {
+    await import(paths[index]);
+  } catch (error) {
+    // Try the next path
+    tryPaths(index + 1);
+  }
+}
+
+// Start trying paths
+tryPaths();

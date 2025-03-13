@@ -45,9 +45,21 @@ The project is now ready for initial release with all core functionality in plac
 - Node.js 16+ or Bun
 - UNIX-like operating system (macOS, Linux) or Windows with WSL
 
+### Using Homebrew (macOS and Linux)
+
+The easiest way to install bunenv on macOS or Linux is via Homebrew:
+
+```bash
+# Install bunenv via Homebrew
+brew install jonathanphilippou/tap/bunenv
+
+# Verify the installation
+bunenv --version
+```
+
 ### Quick Install (Recommended)
 
-The easiest way to install bunenv is using our installer script:
+Alternatively, you can install bunenv using our installer script:
 
 ```bash
 # Using curl
@@ -58,16 +70,6 @@ wget -qO- https://raw.githubusercontent.com/jonathanphilippou/bunenv/main/instal
 ```
 
 This script will install bunenv and set up shell integration automatically.
-
-### Install via Homebrew (macOS and Linux)
-
-```bash
-brew install jonathanphilippou/tap/bunenv
-
-# Then set up shell integration
-bunenv init >> ~/.bashrc  # or your appropriate shell config file
-source ~/.bashrc
-```
 
 ### Install via npm
 

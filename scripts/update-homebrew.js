@@ -1,10 +1,7 @@
 #!/usr/bin/env bun
 
 /**
- * Update Homebrew Formula Script
- *
- * This script updates the Homebrew formula for bunenv when a new version is released.
- * It updates the version number and SHA256 hash in the formula file.
+ * Script to update the Homebrew formula with the latest version of bunenv
  */
 
 import { execSync } from "node:child_process";
@@ -12,48 +9,60 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 async function main() {
-  // Get the current version from package.json
-  const packageJson = JSON.parse(await fs.readFile("package.json", "utf-8"));
-  const version = packageJson.version;
+  try {
+    console.log("Updating Homebrew formula for bunenv...");
 
-  console.log(`Updating Homebrew formula for bunenv ${version}...`);
+    // Get the current version from package.json
+    const packageJsonPath = path.join(process.cwd(), "package.json");
+    const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf-8"));
+    const version = packageJson.version;
 
-  // Get the SHA256 hash of the npm package
-  console.log("Calculating SHA256 hash...");
-  const sha256 = execSync(
-    `curl -sL https://registry.npmjs.org/bunenv/-/bunenv-${version}.tgz | shasum -a 256`
-  )
-    .toString()
-    .trim()
-    .split(" ")[0];
+    console.log(`Current version: ${version}`);
 
-  console.log(`SHA256: ${sha256}`);
+    // Download the tarball to calculate the SHA256
+    const tarballName = `bunenv-${version}.tgz`;
 
-  // Read the formula template
-  const formulaPath = path.join("homebrew", "bunenv.rb");
-  let formula = await fs.readFile(formulaPath, "utf-8");
+    try {
+      // Check if the tarball already exists
+      await fs.access(tarballName);
+      console.log(`Tarball ${tarballName} already exists`);
+    } catch (error) {
+      // Download the tarball if it doesn't exist
+      console.log(`Downloading tarball for version ${version}...`);
+      execSync(`npm pack bunenv@${version}`);
+    }
 
-  // Update version and SHA256
-  formula = formula.replace(
-    /url "https:\/\/registry\.npmjs\.org\/bunenv\/-\/bunenv-.*\.tgz"/,
-    `url "https://registry.npmjs.org/bunenv/-/bunenv-${version}.tgz"`
-  );
+    // Calculate the SHA256 of the tarball
+    const sha256 = execSync(`shasum -a 256 ${tarballName}`)
+      .toString()
+      .trim()
+      .split(" ")[0];
+    console.log(`SHA256: ${sha256}`);
 
-  formula = formula.replace(/sha256 ".*"/, `sha256 "${sha256}"`);
+    // Update the Homebrew formula
+    const formulaPath = path.join(process.cwd(), "homebrew", "bunenv.rb");
+    let formula = await fs.readFile(formulaPath, "utf-8");
 
-  // Write the updated formula
-  await fs.writeFile(formulaPath, formula);
+    // Update the version and SHA256
+    formula = formula.replace(
+      /url "https:\/\/registry\.npmjs\.org\/bunenv\/-\/bunenv-.*\.tgz"/,
+      `url "https://registry.npmjs.org/bunenv/-/bunenv-${version}.tgz"`
+    );
+    formula = formula.replace(/sha256 ".*"/, `sha256 "${sha256}"`);
 
-  console.log(`Homebrew formula updated for version ${version}`);
-  console.log(`Formula updated at: ${formulaPath}`);
-  console.log("\nNext steps:");
-  console.log(
-    "1. Test the formula: brew install --build-from-source ./homebrew/bunenv.rb"
-  );
-  console.log("2. Update your tap or submit a PR to Homebrew Core");
+    // Write the updated formula
+    await fs.writeFile(formulaPath, formula);
+    console.log(`Updated Homebrew formula at ${formulaPath}`);
+
+    // Clean up tarball if needed
+    // await fs.unlink(tarballName);
+    // console.log(`Removed tarball ${tarballName}`);
+
+    console.log("Homebrew formula update complete!");
+  } catch (error) {
+    console.error("Error updating Homebrew formula:", error);
+    process.exit(1);
+  }
 }
 
-main().catch((error) => {
-  console.error("Error:", error);
-  process.exit(1);
-});
+main();
